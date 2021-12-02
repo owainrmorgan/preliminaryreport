@@ -2,7 +2,11 @@
 title: "First Draft KDE"
 author: "Owain Morgan"
 date: "29/11/2021"
+header-includes:
+   - \usepackage{amsmath}
+   - \usepackage[utf8]{inputenc}
 output: pdf_document
+  # fig_caption: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -11,31 +15,240 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Kernel Desity Estimation
 
-Suppose we have $n$ independent, identically distributed
-random variables $X_1, X_2 , \ldots, X_n$
-(known as samples) from a distribution
-whose density function, $f(x)$
-is not known but is assumed to exist.
+Kernel Density Estimation seeks to ask an important question,
+given
 
-Then Kernel Density Estimation
-(also known as Parzen Windows or the empirical probability density function)
-provides an easy way of estimating the true density
-function and as shown by Parzen in 1962, 
-will converge to the true distribution as the number
-of samples $n \to \infty$.
+Suppose we have $n$ independent, identically distributed random
+variables $X_1, X_2 , \ldots, X_n$ (known as samples) from a
+distribution whose density function, $f(x)$ is not known but is assumed
+to exist,
+can we infer the nature of the probabilty density 
+
+Then Kernel Density Estimation (also known as Parzen Windows or the
+empirical probability density function) provides an easy,
+if computationally intensive \cite{DekkingIntro},
+way of
+estimating the true density function and as shown by Parzen in 1962,
+will converge to the true distribution as the number of samples
+$n \to \infty$.
+
+## Historical context
+
+Kernel Density Estimation was only seriously considered in research
+beginning in the late 1950's. 
+At its core, KDE seeks to infer the nature
+of the probability density function (pdf) 
+of a random variable given a
+sample from that random variable. 
+Prior to the development of KDE by
+Rosenblatt \cite{RosenblattOG} & 
+Parzen \cite{parzenOG} 
+in the late 1950's and early 60's, inference of pdfs
+from data was limited to histograms which by their very nature are
+unsmooth and as the bin width narrows, become less reliable. 
+<!-- %This was in spite of the admission by Parzen  -->
+The lack of research was in spite of
+the admission by Parzen \cite{parzenOG} of 
+<!-- % Parzen quote on importance of KDE research -->
+"the obvious importance of these [estimation] problems."
 
 ## The Method
-Intuitively, one expects areas with a high density of samples
-to have a higher density function, and those areas which are more sparse to
-have a lesser density function.
 
-To that end, a kernel function
-$K(y)$ is introduced which in general is
-radially symmetric and unimodal.
-The two most common kernel functions
-are the rectangular (or window)
-which weights every point within a certain distance equally
-and the Gaussian.
+Intuitively, one expects areas with a high density of samples to have a
+higher density function, and those areas which are more sparse to have a
+lesser density function.
+
+To that end, a kernel function $K(y)$ is introduced which in general is
+radially symmetric and unimodal. 
+<!-- The two most common kernel functions -->
+<!-- are the rectangular (or window) which weights every point within a -->
+<!-- certain distance equally and the Gaussian (which weighs the centre, that -->
+<!-- is the data point, heaviest but then tapers away). -->
+<!--->
+<!-- The equations for both these kernel functions are as follows:  -->
+The kernel functions are evaluated at each data point and then summed together,
+with an appropriate normalisation constant to give the empirical
+probability density function.
+That is to say, given each sample $(X_i)_{i=1}^n$
+and assuming a bandwidth $h$, the empirical probability density function,
+$\hat{f}(x)$ is \cite{SheatherBandwidth}
+$$
+\hat{f}(x) = \frac{1}{n} 
+\sum_{i=1}^n \frac{1}{h} 
+K \left( \frac{x-X_i}{h} \right).
+$$
 
 
+## Choices and parameters
+
+Fundamentally, there are two key choices to be made when implementing
+KDE, viz. the choice of kernel function and the choice of bandwidth. We
+consider both in turn.
+
+### Choice of Kernel Function
+
+The two most common choices of kernel function are the rectangular and
+the Gaussian.
+
+The simplest choice of kernel function is the rectangular (or window) function
+which has the formula:
+$$
+K_{r}(x) = \begin{cases}
+1 & \text{ if } | x - x_i | \leq \frac{h}{2}, \\
+0 & \text{otherwise.}
+\end{cases}
+$$ 
+<!-- and looks as follows -->
+and can be seen in 
+Figure \ref{fig:twoKernels}
+<!-- the figure below  -->
+on the left.
+<!-- # ```{r} -->
+<!-- # plot(density.default(10, bw=2, kernel = "rectangular")) -->
+<!-- # ``` -->
+This kernel function has the disadvantage of weighing all points
+within a certain distance (the bandwidth)
+of the data point equally.
+It would be natural to assume that we should weigh points closest
+to the data point the heaviest.
+
+The Gaussian kernel function is precisely that,
+it fits a Gaussian (or normal)
+function about each data point and then sums these together to give the
+empirical density function.
+The formula for this type of density function is given (in 1-dimension) by
+$$
+K_G(x) = \frac{1}{h \sqrt{2 \pi }} \exp 
+\left(
+-\frac{1}{2h} (x-x_i)^2
+\right)
+$$
+The shape of this kernel function is the familiar bell-curve
+as can be seen on the 
+<!--- ```{r}
+# plot(density.default(10, bw=2, kernel = "gaussian"))
+``` --->
+right hand side of Figure \ref{fig:twoKernels}
+ <!-- Or together -->
+```{r, figures-side, fig.show="hold", out.width="50%", fig.cap="\\label{fig:twoKernels}The window and Gaussian Kernel Functions, both centred at $10$ with bandwidth $h=2$."}
+plot(density.default(10, bw=2, kernel = "rectangular"))
+plot(density.default(10, bw=2, kernel = "gaussian"))
+```
+
+
+# Examples
+
+In this section of the report, we will consider some results about KDE.
+\cite{parzenOG}
+
+For reproducibility, we set the seed and include some R libraries as follows.
+```{r, results='hide', message=FALSE}
+set.seed(184)
+library(tidyverse)
+library(bbmle)
+```
+
+
+## A Limited Number of Samples from a (Unimodal) Normal Distribution
+
+We first demonstrate 
+how KDE looks in practice
+and the importance of the choice
+of kernel function.
+
+We consider a random variable,
+$X \sim N(50, 10)$
+of which we take $100$ i.i.d. samples,
+namely $X_1, X_2, \ldots , X_{100}$.
+```{r}
+normSample <- rnorm(100,50,10)
+```
+We plot these values by creating a tibble.
+```{r, normPlot, fig.height=2, fig.width=5}
+normSampDF <- tibble(val = normSample)
+ggplot(data = normSampDF) +
+  geom_point(aes(val, 0))
+```
+
+As can be seen, the data points are more concentrated towards the mean
+as expected.
+<!-- We now use the R \texttt{stats} -->
+<!-- package as follows. -->
+We now plot the kernel density estimate using both the window and Gaussian
+kernel functions, and include the true density function
+since we know we took a sample from a 
+$N(50,10)$ random variable.
+```{r, figures-side-two, fig.show="hold", out.width="50%", fig.cap="\\label{fig:normTwoKernels}Evaluating the emprirical probability density using the window (left) and Gaussian (right) functions."}
+ggplot(data = normSampDF) +
+  xlim(10,90) + geom_point(aes(val, 0)) +
+  geom_density(aes(val), kernel = "rectangular") +
+  geom_function(fun = dnorm, args = list(mean = 50, sd = 10), linetype = "dashed")
+ggplot(data = normSampDF) +
+  xlim(10,90) + geom_point(aes(val, 0)) + geom_density(aes(val)) +
+  geom_function(fun = dnorm, args = list(mean = 50, sd = 10), linetype = "dashed")
+```
+Clearly, the Gaussian kernel gives a much smoother empirical pdf
+and in this case is more appropriate,
+however it is more computationally expensive and has
+an unlimited support.
+
+## Bandwidth Selection
+Now suppose we have the data set
+\texttt{(0.1,0.3,0.4,0.5,0.6,0.9,2.8,4.5,4.7,5.2)}
+which we can graph as follows:
+```{r}
+interest<- c(0.1,0.3,0.4,0.5,0.6,0.9,2.8,4.5,4.7,5.2)
+interestingDF <- tibble(val = interest)
+ggplot(data = interestingDF) +
+  geom_point(aes(val, 0))
+```
+Clearly, this data set is bimodal. Let us perform kernel density estimation to
+illustrate the importance of bandwidth selection.
+We will use the Gaussian kernel for this section.
+
+R, by default 
+will use the method described in
+\cite{SheatherBandwidth}
+that seeks to
+<!-- choosing  -->
+``[choose] the bandwidth to (approximately) minimize good quality estimates of the mean integrated squared error".
+
+Using this bandwidth,
+the kernel density estimate is as follows.
+```{r}
+intGauss <- density.default(interest)
+plot(intGauss)
+```
+```{r}
+ggplot(data = interestingDF) +
+  geom_point(aes(val, 0))+
+  geom_density(aes(val))
+```
+In this case, R estimates the best bandwidth to be
+`r density.default(interest)$bw `.
+
+Let us now consider two extremes,
+a very narrow bandwidth and a very wide bandwidth.
+```{r, figures-side-three, fig.show="hold", out.width="50%", fig.cap="\\label{fig:narrowWideDensity}Evaluating the emprirical probability density using a bandwidth of 0.05 (left) and 3 (right)."}
+ggplot(data = interestingDF) +
+  xlim(-1,7) + geom_point(aes(val,0)) +
+  geom_density(aes(val), bw = 0.05)
+ggplot(data = interestingDF) +
+  xlim(-5,15) + geom_point(aes(val,0)) +
+  geom_density(aes(val), bw = 3)
+```
+Both bandwidths in Figure \ref{fig:narrowWideDensity}
+are totally inappropriate.
+In the first case with a narrow bandwidth,
+the density is totally concentrated where the data points are
+and so is overfitted and thus is unlikely to generalise
+to other examples of the same distribution.
+On the other hand, using a very wide bandwidth of $3$
+totally masks the underlying nature of the data.
+
+
+
+
+\bibliographystyle{apalike}
+\bibliography{llyfr.bib}
 

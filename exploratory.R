@@ -6,12 +6,16 @@ library(dplyr)
 library(modeest)
 library(tswge)
 
+library(tidyverse, ggplot2, bbmle)
+library(modeest)
+library(tswge)
+
 set.seed(184)
 
 interest<- c(0.1,0.3,0.4,0.5,0.6,0.9,2.8,4.5,4.7,5.2)
 interestingDF <- tibble(val = interest)
-zeroesN <- for(i in 1:length(interest))
-  zeroesN[i] = 0
+# zeroesN <- for(i in 1:length(interest))
+#   zeroesN[i] = 0
 
 
 inteTwoD <- interestingDF %>%
@@ -79,4 +83,25 @@ ggplot(data = normSampDF) +
   geom_density(aes(val)) +
   geom_function(fun = dnorm, args = list(mean = 50, sd = 10))
 
-            
+ggplot(data = normSampDF) +
+   xlim(10,90)+ geom_point(aes(val, 0)) +geom_density(aes(val)) +
+  geom_function(fun = dnorm, args = list(mean = 50, sd = 10), linetype = "dashed")
+
+ggplot(data = normSampDF) +
+  geom_point(aes(val, 0)) +
+  geom_density(aes(val), kernel="triangular")    
+
+
+serExpTen <- rexp(10)
+serExpHund <- rexp(100)
+serExpThou <- rexp(1000)
+serExpTenThou <- rexp(10000)
+
+plot(density(serExpTen))
+plot(density(serExpHund))
+plot(density(serExpThou))
+plot(density(serExpTenThou))
+plot(y=dexp(x))
+
+x <- seq(-1,9,0.01)
+plot(x, dexp(x), type="l")
