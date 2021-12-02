@@ -46,3 +46,22 @@ Finally, I will demonstrate (empirically) that
 KDE converges to the true density 
 (as shown by Parzen, 1962)
 using a common but not normal distribution.
+
+## Finished
+The completed report was submitted 2 Dec 21 in the evening.
+The plan was mainly adhered to but with a few additions after Gustav meeting,
+mainly adding in the historical context and a greater emphasis on literature I'd read.
+The final structure was as follows:
+* A short introduction explaining KDE seeks to find an estimate for the pdf & claiming KDE will converge to pdf.
+* Historical context of KDE as an improvement over histograms
+* The method employed- kernel functions and summing these.
+* Choices to be made
+  * Kernel Function- gave formulas for rectangular and Gaussian and included graphs of both.
+  * Bandwidth- its choice is important and is a trade-off but Sheather paper is a good compromise
+* Examples of KDE
+  * 100 samples from a normal distribution used to demonstrate diff. between rectangular and Gaussian (mentioned smoothness but Gaussian harder to eval.
+  * Bimodal created dataset used to show importnace of bandwidth: demonstrated using Sheather, narrow and wide bandwidths.
+* Included 6 references of which 5 are cited in the paper corpus.
+
+Sadly, there was no space to show converegence to a real pdf, however the code to do this has been written and can be found in the
+exploratory file. 
